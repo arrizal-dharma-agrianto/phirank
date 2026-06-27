@@ -1,0 +1,65 @@
+name: Deploy Staging
+
+on:
+  push:
+    branches:
+      - staging
+
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Deploy to VPS Staging
+    runs-on: ubuntu-latest
+    environment: staging
+
+    steps:
+      - name: Deploy via SSH
+        env:
+          SSH_HOST: ${{ secrets.STAGING_HOST }}
+          SSH_USER: ${{ secrets.STAGING_USER }}
+          SSH_KEY: ${{ secrets.STAGING_SSH_KEY }}
+          PROJECT_PATH: /home/phirank/htdocs/phirank.arrizaldharma.my.id/phirank
+          NODE_PATH: /home/phirank/.nvm/versions/node/v22.23.1/bin
+          PM2_APP_NAME: phirank
+        run: |
+          mkdir -p ~/.ssh
+
+          echo "$SSH_KEY" > ~/.ssh/staging_key
+          chmod 600 ~/.ssh/staging_key
+
+          ssh-keyscan -H "$SSH_HOST" >> ~/.ssh/known_hosts
+
+          ssh -i ~/.ssh/staging_key "$SSH_USER@$SSH_HOST" << EOF
+            set -e
+
+            export PATH="$NODE_PATH:\$PATH"
+
+            cd "$PROJECT_PATH"
+
+            echo "Pull latest staging branch..."
+            git fetch origin staging
+            git checkout staging
+            git reset --hard origin/staging
+
+            echo "Install dependencies..."
+            HUSKY=0 bun install --ignore-scripts
+
+            echo "Generate Prisma client..."
+            "$NODE_PATH/npx" prisma generate
+
+            echo "Run Prisma migrations..."
+            "$NODE_PATH/npx" prisma migrate deploy
+
+            echo "Build Next.js..."
+            "$NODE_PATH/npm" run build
+
+            echo "Restart PM2..."
+            "$NODE_PATH/pm2" restart "$PM2_APP_NAME" --update-env || "$NODE_PATH/pm2" start ecosystem.config.cjs
+
+            "$NODE_PATH/pm2" save
+
+            echo "Deployment completed."
+          EOF
