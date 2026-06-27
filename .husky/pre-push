@@ -1,0 +1,10 @@
+#!/usr/bin/env sh
+
+if [ ! -f .husky/enabled ]; then
+  echo "⏭️ Husky disabled"
+  exit 0
+fi
+
+echo "⏭️ Checking build before pushing..."
+
+bun run build || exit 1
