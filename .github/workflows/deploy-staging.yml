@@ -1,9 +1,11 @@
 name: Deploy Staging
 
 on:
-  push:
+  pull_request:
     branches:
       - staging
+    types:
+      - closed
 
 concurrency:
   group: deploy-staging
@@ -11,6 +13,7 @@ concurrency:
 
 jobs:
   deploy:
+    if: github.event.pull_request.merged == true && github.event.pull_request.head.ref == 'development'
     name: Deploy to VPS Staging
     runs-on: ubuntu-latest
     environment: staging
@@ -27,17 +30,33 @@ jobs:
         run: |
           mkdir -p ~/.ssh
 
-          echo "$SSH_KEY" > ~/.ssh/staging_key
+          printf "%s" "$SSH_KEY" > ~/.ssh/staging_key
           chmod 600 ~/.ssh/staging_key
 
           ssh-keyscan -H "$SSH_HOST" >> ~/.ssh/known_hosts
 
-          ssh -i ~/.ssh/staging_key "$SSH_USER@$SSH_HOST" << EOF
+          ssh -o BatchMode=yes -i ~/.ssh/staging_key "$SSH_USER@$SSH_HOST" << EOF
             set -e
 
             export PATH="$NODE_PATH:\$PATH"
 
             cd "$PROJECT_PATH"
+
+            echo "Load environment variables..."
+            if [ -f .env ]; then
+              set -a
+              . ./.env
+              set +a
+            else
+              echo ".env file not found"
+              exit 1
+            fi
+
+            echo "Check required env..."
+            if [ -z "\$DATABASE_URL" ]; then
+              echo "DATABASE_URL is missing"
+              exit 1
+            fi
 
             echo "Pull latest staging branch..."
             git fetch origin staging
