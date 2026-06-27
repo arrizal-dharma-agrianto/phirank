@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  allowedDevOrigins: ['167.86.117.58'],
   serverExternalPackages: [
     "chrome-launcher", 
     "lighthouse",
