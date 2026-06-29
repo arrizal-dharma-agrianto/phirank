@@ -1,4 +1,4 @@
-# Phirank v1.0.1
+# Phirank v1.0.2
 
 Phirank adalah platform SEO workspace berbasis Next.js untuk membantu tim melakukan audit website, crawling halaman, membaca isu teknis, menyusun draft konten SEO, dan mengelola akses anggota dalam satu tenant.
 
