@@ -68,6 +68,11 @@ const contentGeneratorSchema = z.object({
     .trim()
     .max(300, "Secondary keywords must be 300 characters or fewer")
     .optional(),
+  contentTags: z
+    .string()
+    .trim()
+    .max(300, "Content tags must be 300 characters or fewer")
+    .optional(),
   brandContext: z
     .string()
     .trim()
