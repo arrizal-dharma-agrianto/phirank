@@ -51,6 +51,19 @@ type IndexNowSubmissionResult = {
   submittedUrl: string | null;
 };
 
+const getContentTags = (sections: unknown) => {
+  if (!sections || typeof sections !== "object") return [];
+
+  const contentTags = (sections as { contentTags?: unknown }).contentTags;
+
+  if (typeof contentTags !== "string") return [];
+
+  return contentTags
+    .split("\n")
+    .map((line) => line.replace(/^\s*(?:[-*+]|\d+[.)])\s+/, "").trim())
+    .filter(Boolean);
+};
+
 const createSignature = (payload: string, secret: string, timestamp: string) => {
   return createHmac("sha256", secret)
     .update(`${timestamp}.${payload}`)
@@ -72,6 +85,7 @@ const serializeDraftContent = (draft: DraftRow): StructuredGeneratedContent => (
   imageAltTexts: draft.image_alt_texts as string[],
   faq: draft.faq as StructuredGeneratedContent["faq"],
   seoNotes: draft.seo_notes as string[],
+  contentTags: getContentTags(draft.sections),
   sections: draft.sections as StructuredGeneratedContent["sections"],
 });
 
@@ -368,6 +382,7 @@ const POST = async (req: Request) =>
         name: integration.name,
       },
       content,
+      contentTags: content.contentTags,
       model: parsed.data.model,
       source: parsed.data.source,
       publishedAt: timestamp,

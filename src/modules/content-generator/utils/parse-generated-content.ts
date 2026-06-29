@@ -7,7 +7,8 @@ type ContentSectionKey =
   | "internalLinks"
   | "imageAltTexts"
   | "faq"
-  | "seoNotes";
+  | "seoNotes"
+  | "contentTags";
 
 type ContentSectionDefinition = {
   key: ContentSectionKey;
@@ -40,6 +41,7 @@ type StructuredGeneratedContent = {
   imageAltTexts: string[];
   faq: ParsedFaqItem[];
   seoNotes: string[];
+  contentTags: string[];
   sections: Record<ContentSectionKey, string | null>;
 };
 
@@ -82,6 +84,15 @@ const contentSections: ContentSectionDefinition[] = [
   {
     key: "seoNotes",
     aliases: ["catatan optimasi seo"],
+  },
+  {
+    key: "contentTags",
+    aliases: [
+      "tag konten",
+      "tag konten yang bisa dipakai",
+      "tag-tag yang bisa dipakai",
+      "content tags",
+    ],
   },
 ];
 
@@ -231,6 +242,7 @@ const parseGeneratedContent = (rawContent: string): StructuredGeneratedContent =
     imageAltTexts: parseListItems(sections.imageAltTexts),
     faq: parseFaq(sections.faq),
     seoNotes: parseListItems(sections.seoNotes),
+    contentTags: parseListItems(sections.contentTags),
     sections,
   };
 };

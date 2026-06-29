@@ -39,6 +39,7 @@ type ContentGeneratorStructuredContent = {
   imageAltTexts: string[];
   faq: ContentGeneratorFaqItem[];
   seoNotes: string[];
+  contentTags: string[];
   sections: Record<string, string | null>;
 };
 

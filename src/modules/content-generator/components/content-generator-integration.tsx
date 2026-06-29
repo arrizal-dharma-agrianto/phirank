@@ -89,8 +89,10 @@ export async function POST(req) {
   // payload.content is structured:
   // {
   //   title, description, slug, strategySummary,
-  //   mainContent, internalLinks, imageAltTexts, faq, seoNotes, raw
+  //   mainContent, internalLinks, imageAltTexts, faq, seoNotes,
+  //   contentTags, raw
   // }
+  // payload.contentTags is also available as a shortcut array.
   const publishedUrl = await publishToCms(payload.content);
 
   return Response.json({
@@ -328,6 +330,8 @@ export async function POST(req) {
                   <code>content.slug</code>
                   <code>content.mainContent</code>
                   <code>content.faq</code>
+                  <code>content.contentTags</code>
+                  <code>contentTags</code>
                   <code>content.raw</code>
                 </div>
                 <p className="mt-2 text-xs leading-5 text-gray-500">

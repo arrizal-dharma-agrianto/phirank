@@ -106,6 +106,7 @@ const ContentGeneratorManual = () => {
       wordCount: 1800,
       audience: "",
       secondaryKeywords: "",
+      contentTags: "",
       brandContext: "",
     },
   });
@@ -363,6 +364,21 @@ const ContentGeneratorManual = () => {
                     {...form.register("secondaryKeywords")}
                   />
                 </div>
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="contentTags">Tag konten yang bisa dipakai</Label>
+                <Input
+                  id="contentTags"
+                  placeholder="Contoh: seo, audit website, umkm, performa website"
+                  aria-invalid={!!form.formState.errors.contentTags}
+                  {...form.register("contentTags")}
+                />
+                {form.formState.errors.contentTags ? (
+                  <p className="text-xs text-red-500">
+                    {form.formState.errors.contentTags.message}
+                  </p>
+                ) : null}
               </div>
 
               <div className="grid gap-2">

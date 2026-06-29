@@ -12,7 +12,7 @@ const renderTextBlock = (value: string | null) => {
   );
 };
 
-const renderList = (items: string[]) => {
+const renderList = (items: string[] = []) => {
   if (!items.length) {
     return <p className="text-xs text-gray-400">-</p>;
   }
@@ -112,6 +112,10 @@ const ContentGeneratorStructuredContent = ({
     {
       title: "Catatan optimasi SEO",
       node: renderList(content.seoNotes),
+    },
+    {
+      title: "Tag konten",
+      node: renderList(content.contentTags),
     },
   ];
 

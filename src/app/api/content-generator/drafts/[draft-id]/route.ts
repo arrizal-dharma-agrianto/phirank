@@ -32,6 +32,19 @@ type DraftDetailRow = {
   updated_at: Date;
 };
 
+const getContentTags = (sections: unknown) => {
+  if (!sections || typeof sections !== "object") return [];
+
+  const contentTags = (sections as { contentTags?: unknown }).contentTags;
+
+  if (typeof contentTags !== "string") return [];
+
+  return contentTags
+    .split("\n")
+    .map((line) => line.replace(/^\s*(?:[-*+]|\d+[.)])\s+/, "").trim())
+    .filter(Boolean);
+};
+
 const serializeDraft = (draft: DraftDetailRow) => ({
   id: draft.id,
   title: draft.title,
@@ -51,6 +64,7 @@ const serializeDraft = (draft: DraftDetailRow) => ({
     imageAltTexts: draft.image_alt_texts,
     faq: draft.faq,
     seoNotes: draft.seo_notes,
+    contentTags: getContentTags(draft.sections),
     sections: draft.sections,
   },
   source: draft.source,

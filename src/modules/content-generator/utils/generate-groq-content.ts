@@ -67,6 +67,7 @@ const generateGroqContent = async (
     audience,
     brandContext,
     contentType,
+    contentTags,
     internalLinks,
     pronounStyle,
     secondaryKeywords,
@@ -84,6 +85,9 @@ const generateGroqContent = async (
       ? `Target keyword utama: ${targetKeyword}`
       : "Target keyword utama tidak diberikan. Tentukan fokus SEO utama dari brief konten, search intent, dan konteks brand tanpa memaksakan keyword tertentu.",
     secondaryKeywords ? `Keyword turunan: ${secondaryKeywords}` : null,
+    contentTags
+      ? `Tag konten yang bisa dipakai: ${contentTags}`
+      : "Tag konten tidak diberikan. Rekomendasikan tag yang relevan berdasarkan brief, intent, dan konteks brand.",
     `Tone of voice: ${tone}`,
     `Gaya sapaan: ${pronounStyle}`,
     audience ? `Target audiens: ${audience}` : null,
@@ -133,6 +137,7 @@ const generateGroqContent = async (
               "7. Saran Image Alt Text dalam bahasa Indonesia",
               "8. FAQ Section",
               "9. Catatan Optimasi SEO",
+              "10. Tag Konten yang bisa dipakai (8-12 tag, pisahkan sebagai list, gunakan lowercase kecuali nama brand/produk)",
             ].join(" "),
           ].join(" "),
         },
