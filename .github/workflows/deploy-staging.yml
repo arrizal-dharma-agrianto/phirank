@@ -1,11 +1,9 @@
 name: Deploy Staging
 
 on:
-  pull_request:
+  push:
     branches:
       - staging
-    types:
-      - closed
 
 concurrency:
   group: deploy-staging
@@ -13,7 +11,7 @@ concurrency:
 
 jobs:
   deploy:
-    if: github.event.pull_request.merged == true && github.event.pull_request.head.ref == 'development'
+    # if: github.event.pull_request.merged == true && github.event.pull_request.head.ref == 'development'
     name: Deploy to VPS Staging
     runs-on: ubuntu-latest
     environment: staging
@@ -30,12 +28,12 @@ jobs:
         run: |
           mkdir -p ~/.ssh
 
-          printf "%s" "$SSH_KEY" > ~/.ssh/staging_key
+          echo "$SSH_KEY" > ~/.ssh/staging_key
           chmod 600 ~/.ssh/staging_key
 
           ssh-keyscan -H "$SSH_HOST" >> ~/.ssh/known_hosts
 
-          ssh -o BatchMode=yes -i ~/.ssh/staging_key "$SSH_USER@$SSH_HOST" << EOF
+          ssh -i ~/.ssh/staging_key "$SSH_USER@$SSH_HOST" << EOF
             set -e
 
             export PATH="$NODE_PATH:\$PATH"
