@@ -93,12 +93,33 @@ export async function POST(req) {
   //   contentTags, raw
   // }
   // payload.contentTags is also available as a shortcut array.
+  // payload.sitemap.urls contains the latest crawled indexable URLs:
+  // [{ url, sourceUrl, lastModified }]
   const publishedUrl = await publishToCms(payload.content);
+  await updateSitemap(payload.sitemap.urls, publishedUrl);
 
   return Response.json({
     received: true,
     publishedUrl,
   });
+}`;
+const sitemapPayloadSnippet = `{
+  "sitemap": {
+    "website": {
+      "id": "website-id",
+      "name": "Client Website",
+      "domain": "client-site.com",
+      "startUrl": "https://client-site.com"
+    },
+    "urls": [
+      {
+        "url": "https://client-site.com/page",
+        "sourceUrl": "https://client-site.com/page",
+        "lastModified": "2026-06-30T10:00:00.000Z"
+      }
+    ],
+    "urlCount": 1
+  }
 }`;
 
   const handleCopyWebhookSecret = async () => {
@@ -332,12 +353,31 @@ export async function POST(req) {
                   <code>content.faq</code>
                   <code>content.contentTags</code>
                   <code>contentTags</code>
+                  <code>sitemap.website</code>
+                  <code>sitemap.urls</code>
+                  <code>sitemap.urlCount</code>
                   <code>content.raw</code>
                 </div>
                 <p className="mt-2 text-xs leading-5 text-gray-500">
                   Signed headers: <code>x-phirank-signature</code>,{" "}
                   <code>x-phirank-timestamp</code>, and{" "}
                   <code>x-phirank-delivery-id</code>.
+                </p>
+              </div>
+
+              <div className="rounded-lg border border-gray-100 p-3">
+                <p className="text-sm font-medium text-gray-900">
+                  Sitemap payload
+                </p>
+                <pre className="mt-2 whitespace-pre-wrap break-words rounded bg-gray-50 px-2 py-2 text-xs leading-5 text-gray-700">
+                  <code>{sitemapPayloadSnippet}</code>
+                </pre>
+                <p className="mt-2 text-xs leading-5 text-gray-500">
+                  <code>sitemap.urls</code> contains the latest crawled
+                  indexable URLs for the active workspace website. Use{" "}
+                  <code>url</code> for sitemap entries, keep{" "}
+                  <code>sourceUrl</code> for traceability, and use{" "}
+                  <code>lastModified</code> as the page lastmod value.
                 </p>
               </div>
 

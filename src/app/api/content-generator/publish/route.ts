@@ -5,6 +5,10 @@ import { NextResponse } from "next/server";
 import { getAuthorizationContext } from "@/lib/authorization";
 import { prisma } from "@/lib/prisma";
 import { withAuth } from "@/lib/with-auth";
+import {
+  getConfiguredWebsite,
+  listCurrentCrawlSitemapUrls,
+} from "@/modules/data-audit-crawler/services/server/website.service";
 import { contentGeneratorPublishSchema } from "@/modules/content-generator/schemas";
 import {
   parseGeneratedContent,
@@ -374,6 +378,10 @@ const POST = async (req: Request) =>
     const content = draft
       ? serializeDraftContent(draft)
       : parseGeneratedContent(parsed.data.content);
+    const [configuredWebsite, sitemapUrls] = await Promise.all([
+      getConfiguredWebsite(authorization.tenantId),
+      listCurrentCrawlSitemapUrls(authorization.tenantId),
+    ]);
     const payload = JSON.stringify({
       event: "content.generated",
       deliveryId,
@@ -385,6 +393,18 @@ const POST = async (req: Request) =>
       contentTags: content.contentTags,
       model: parsed.data.model,
       source: parsed.data.source,
+      sitemap: {
+        website: configuredWebsite
+          ? {
+              id: configuredWebsite.id,
+              name: configuredWebsite.name,
+              domain: configuredWebsite.domain,
+              startUrl: configuredWebsite.startUrl,
+            }
+          : null,
+        urls: sitemapUrls,
+        urlCount: sitemapUrls.length,
+      },
       publishedAt: timestamp,
     });
     const signature = createSignature(

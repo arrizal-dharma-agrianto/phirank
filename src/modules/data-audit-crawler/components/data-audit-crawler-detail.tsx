@@ -256,7 +256,7 @@ const DataAuditCrawlerDetail = ({
             onClick={() => updateMutation.mutate()}
           >
             <ArrowsClockwiseIcon aria-hidden="true" className="size-3.5" />
-            {updateMutation.isPending ? "Starting..." : "Start Crawling"}
+            {updateMutation.isPending ? "Crawling..." : "Crawl"}
           </Button>
         </div>
       </div>
