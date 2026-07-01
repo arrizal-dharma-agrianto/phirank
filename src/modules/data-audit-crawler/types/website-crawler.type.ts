@@ -34,6 +34,7 @@ type CrawlJob = {
   maxCrawlPages: number;
   startedAt: string | null;
   finishedAt: string | null;
+  elapsedTimeMs: number | null;
   errorMessage: string | null;
   createdAt: string;
 };

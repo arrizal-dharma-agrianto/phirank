@@ -10,6 +10,7 @@ import {
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -36,7 +37,6 @@ import type { CreatedContentGeneratorIntegration } from "../types";
 
 const ContentGeneratorIntegration = () => {
   const { activeTenantId } = useActiveTenant();
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [createdIntegration, setCreatedIntegration] =
     useState<CreatedContentGeneratorIntegration | null>(null);
   const [isCreatingIntegration, setIsCreatingIntegration] = useState(false);
@@ -126,13 +126,13 @@ const sitemapPayloadSnippet = `{
     if (!createdIntegration?.webhookSecret) return;
 
     await navigator.clipboard.writeText(createdIntegration.webhookSecret);
+    toast.success("Webhook secret copied");
   };
 
   const handleCreateIntegration = async (
     values: ContentGeneratorIntegrationInput,
   ) => {
     setIsCreatingIntegration(true);
-    setErrorMessage(null);
     setCreatedIntegration(null);
 
     try {
@@ -142,12 +142,16 @@ const sitemapPayloadSnippet = `{
       queryClient.invalidateQueries({
         queryKey: ["content-generator-integrations", activeTenantId],
       });
+      toast.success("Webhook integration created", {
+        description: "Copy the secret before leaving this page.",
+      });
     } catch (error) {
-      setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : "Failed to create integration.",
-      );
+      toast.error("Failed to create integration", {
+        description:
+          error instanceof Error
+            ? error.message
+            : "Please check the webhook configuration.",
+      });
     } finally {
       setIsCreatingIntegration(false);
     }
@@ -155,19 +159,20 @@ const sitemapPayloadSnippet = `{
 
   const handleDeleteIntegration = async (integrationId: string) => {
     setDeletingIntegrationId(integrationId);
-    setErrorMessage(null);
 
     try {
       await deleteContentGeneratorIntegration(integrationId);
       queryClient.invalidateQueries({
         queryKey: ["content-generator-integrations", activeTenantId],
       });
+      toast.success("Webhook integration deleted");
     } catch (error) {
-      setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : "Failed to delete integration.",
-      );
+      toast.error("Failed to delete integration", {
+        description:
+          error instanceof Error
+            ? error.message
+            : "Please try again in a moment.",
+      });
     } finally {
       setDeletingIntegrationId(null);
     }
@@ -242,12 +247,6 @@ const sitemapPayloadSnippet = `{
                   </p>
                 )}
               </div>
-
-              {errorMessage ? (
-                <div className="rounded-lg border border-red-100 bg-red-50 p-3 text-xs text-red-700">
-                  {errorMessage}
-                </div>
-              ) : null}
 
               <Button
                 type="submit"

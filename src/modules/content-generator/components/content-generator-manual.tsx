@@ -9,6 +9,7 @@ import {
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -44,6 +45,8 @@ import {
 import type { GeneratedContent } from "../types";
 import { ContentGeneratorStructuredContent } from "./content-generator-structured-content";
 
+type PublishDelivery = Awaited<ReturnType<typeof publishGeneratedContent>>;
+
 const contentTypeOptions = [
   { value: "blogArticle", label: "Artikel blog panjang" },
   { value: "landingPage", label: "Landing page" },
@@ -68,6 +71,18 @@ const pronounOptions = [
   label: string;
 }>;
 
+const getPublishSuccessMessage = (delivery: PublishDelivery) =>
+  [
+    `Published to webhook. Delivery ${delivery.deliveryId} returned HTTP ${delivery.status}.`,
+    delivery.indexNow
+      ? delivery.indexNow.status === "submitted"
+        ? `IndexNow submitted ${delivery.indexNow.submittedUrl}.`
+        : `IndexNow ${delivery.indexNow.status}: ${delivery.indexNow.message}`
+      : null,
+  ]
+    .filter(Boolean)
+    .join(" ");
+
 const ContentGeneratorManual = () => {
   const { activeTenantId } = useActiveTenant();
   const queryClient = useQueryClient();
@@ -77,12 +92,6 @@ const ContentGeneratorManual = () => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
-  const [publishErrorMessage, setPublishErrorMessage] = useState<string | null>(
-    null,
-  );
-  const [publishSuccessMessage, setPublishSuccessMessage] = useState<
-    string | null
-  >(null);
   const [selectedIntegrationId, setSelectedIntegrationId] = useState("");
   const [submitToIndexNow, setSubmitToIndexNow] = useState(true);
 
@@ -114,8 +123,6 @@ const ContentGeneratorManual = () => {
   const onSubmit = async (values: ContentGeneratorInput) => {
     setIsGenerating(true);
     setErrorMessage(null);
-    setPublishErrorMessage(null);
-    setPublishSuccessMessage(null);
 
     try {
       const data = await generateContent(values);
@@ -143,8 +150,6 @@ const ContentGeneratorManual = () => {
     if (!result?.content || !generatedSource || !publishIntegrationId) return;
 
     setIsPublishing(true);
-    setPublishErrorMessage(null);
-    setPublishSuccessMessage(null);
 
     try {
       const delivery = await publishGeneratedContent({
@@ -167,22 +172,18 @@ const ContentGeneratorManual = () => {
         queryKey: ["content-generator-draft", result.id],
       });
 
-      setPublishSuccessMessage(
-        [
-          `Published to webhook. Delivery ${delivery.deliveryId} returned HTTP ${delivery.status}.`,
-          delivery.indexNow
-            ? delivery.indexNow.status === "submitted"
-              ? `IndexNow submitted ${delivery.indexNow.submittedUrl}.`
-              : `IndexNow ${delivery.indexNow.status}: ${delivery.indexNow.message}`
-            : null,
-        ]
-          .filter(Boolean)
-          .join(" "),
-      );
+      const successMessage = getPublishSuccessMessage(delivery);
+
+      toast.success("Published to webhook", {
+        description: successMessage,
+      });
     } catch (error) {
-      setPublishErrorMessage(
-        error instanceof Error ? error.message : "Failed to publish content.",
-      );
+      toast.error("Failed to publish content", {
+        description:
+          error instanceof Error
+            ? error.message
+            : "Please check the webhook and try again.",
+      });
       queryClient.invalidateQueries({
         queryKey: ["content-generator-drafts", activeTenantId],
       });
@@ -487,18 +488,6 @@ const ContentGeneratorManual = () => {
                       </p>
                     )}
                   </div>
-
-                  {publishErrorMessage ? (
-                    <div className="rounded-lg border border-red-100 bg-red-50 p-3 text-xs text-red-700">
-                      {publishErrorMessage}
-                    </div>
-                  ) : null}
-
-                  {publishSuccessMessage ? (
-                    <div className="rounded-lg border border-emerald-100 bg-emerald-50 p-3 text-xs text-emerald-700">
-                      {publishSuccessMessage}
-                    </div>
-                  ) : null}
 
                   <div className="flex items-center justify-between gap-3 rounded-lg border border-gray-100 p-3">
                     <div>

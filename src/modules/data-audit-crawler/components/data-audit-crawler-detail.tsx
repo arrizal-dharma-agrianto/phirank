@@ -10,7 +10,8 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
+import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -46,6 +47,7 @@ import {
   updateCrawlerWebsite,
 } from "../services";
 import type {
+  CrawlJob,
   CrawlPageIndexabilityFilter,
   CrawlPageSortBy,
   CrawlPageStatusFilter,
@@ -84,6 +86,62 @@ const formatNumber = (value: number) => {
   return new Intl.NumberFormat("en-US").format(value);
 };
 
+const isActiveCrawl = (job: CrawlJob) =>
+  job.status === "pending" || job.status === "running";
+
+const getElapsedTime = (job: CrawlJob, now: number) => {
+  if (typeof job.elapsedTimeMs === "number") return job.elapsedTimeMs;
+  if (!job.startedAt || !isActiveCrawl(job)) return null;
+
+  return Math.max(0, now - new Date(job.startedAt).getTime());
+};
+
+const formatDuration = (milliseconds: number | null) => {
+  if (milliseconds === null) return "-";
+
+  const totalSeconds = Math.max(0, Math.floor(milliseconds / 1000));
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  if (hours > 0) {
+    return `${hours}j ${minutes}m ${seconds}d`;
+  }
+
+  if (minutes > 0) {
+    return `${minutes}m ${seconds}d`;
+  }
+
+  return `${seconds}d`;
+};
+
+const formatElapsedTime = (job: CrawlJob, now: number) => {
+  const duration = formatDuration(getElapsedTime(job, now));
+
+  if (job.status === "pending" || job.status === "running") {
+    return `Sedang berjalan ${duration}`;
+  }
+
+  if (job.status === "completed") {
+    return `Selesai dalam ${duration}`;
+  }
+
+  return `Gagal setelah ${duration}`;
+};
+
+const formatCrawlButtonLabel = (
+  latestJob: CrawlJob | undefined,
+  now: number,
+  isPending: boolean,
+) => {
+  if (isPending) return "Crawling...";
+  if (latestJob && isActiveCrawl(latestJob)) {
+    return `Sedang berjalan ${formatDuration(getElapsedTime(latestJob, now))}`;
+  }
+
+  return "Crawl";
+};
+
 const pageSizeOptions = [10, 25, 50, 100] as const;
 
 const mobileFriendlinessLabel = (value: boolean | null) => {
@@ -115,6 +173,7 @@ const DataAuditCrawlerDetail = ({
     useState<CrawlPageIndexabilityFilter>("all");
   const [sortBy, setSortBy] = useState<CrawlPageSortBy>("createdAt");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+  const [now, setNow] = useState(() => Date.now());
   const router = useRouter();
   const { data: website, isLoading, error } = useQuery({
     queryKey: [
@@ -152,6 +211,13 @@ const DataAuditCrawlerDetail = ({
       queryClient.invalidateQueries({
         queryKey: ["data-audit-crawler-websites"],
       });
+      toast.success("Crawl started");
+    },
+    onError: (error) => {
+      toast.error("Failed to start crawling", {
+        description:
+          error instanceof Error ? error.message : "Please try again.",
+      });
     },
   });
   const backlinkMutation = useMutation({
@@ -160,8 +226,23 @@ const DataAuditCrawlerDetail = ({
       queryClient.invalidateQueries({
         queryKey: ["data-audit-crawler-website", websiteId],
       });
+      toast.success("Backlink profile refreshed");
+    },
+    onError: (error) => {
+      toast.error("Failed to refresh backlinks", {
+        description:
+          error instanceof Error ? error.message : "Please try again.",
+      });
     },
   });
+
+  useEffect(() => {
+    if (!website?.jobs.some(isActiveCrawl)) return;
+
+    const interval = window.setInterval(() => setNow(Date.now()), 1000);
+
+    return () => window.clearInterval(interval);
+  }, [website?.jobs]);
 
   const resetToFirstPage = () => setPage(1);
 
@@ -221,6 +302,7 @@ const DataAuditCrawlerDetail = ({
     pagination.total,
     pagination.page * pagination.pageSize,
   );
+  const latestJob = website.jobs[0];
 
   return (
     <div className="mx-auto grid w-full max-w-6xl gap-5">
@@ -256,22 +338,10 @@ const DataAuditCrawlerDetail = ({
             onClick={() => updateMutation.mutate()}
           >
             <ArrowsClockwiseIcon aria-hidden="true" className="size-3.5" />
-            {updateMutation.isPending ? "Crawling..." : "Crawl"}
+            {formatCrawlButtonLabel(latestJob, now, updateMutation.isPending)}
           </Button>
         </div>
       </div>
-
-      {updateMutation.error ? (
-        <div className="rounded-lg border border-red-100 bg-red-50 p-3 text-sm text-red-700">
-          {updateMutation.error.message}
-        </div>
-      ) : null}
-
-      {website.backlinkProfileEnabled && backlinkMutation.error ? (
-        <div className="rounded-lg border border-red-100 bg-red-50 p-3 text-sm text-red-700">
-          {backlinkMutation.error.message}
-        </div>
-      ) : null}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         {[
@@ -624,6 +694,9 @@ const DataAuditCrawlerDetail = ({
                   </p>
                   <p className="text-xs text-gray-500">
                     {job.provider} · Created {formatDate(job.createdAt)}
+                  </p>
+                  <p className="mt-1 text-xs text-gray-500">
+                    {formatElapsedTime(job, now)}
                   </p>
                   {job.errorMessage ? (
                     <p className="mt-1 text-xs text-red-600">

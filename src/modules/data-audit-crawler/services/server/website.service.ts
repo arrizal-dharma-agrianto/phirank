@@ -39,6 +39,7 @@ type CrawlJobRow = {
   max_crawl_pages: number;
   started_at: Date | null;
   finished_at: Date | null;
+  elapsed_time_ms: number | null;
   error_message: string | null;
   created_at: Date;
 };
@@ -243,6 +244,7 @@ const serializeJob = (job: CrawlJobRow) => ({
   maxCrawlPages: job.max_crawl_pages,
   startedAt: job.started_at?.toISOString() ?? null,
   finishedAt: job.finished_at?.toISOString() ?? null,
+  elapsedTimeMs: job.elapsed_time_ms,
   errorMessage: job.error_message,
   createdAt: job.created_at.toISOString(),
 });
@@ -947,6 +949,7 @@ const getWebsiteDetail = async (
         max_crawl_pages,
         started_at,
         finished_at,
+        elapsed_time_ms,
         error_message,
         created_at
       FROM crawl_jobs
@@ -1189,6 +1192,7 @@ const listCrawlJobs = async (tenantId: string) => {
       crawl_jobs.max_crawl_pages,
       crawl_jobs.started_at,
       crawl_jobs.finished_at,
+      crawl_jobs.elapsed_time_ms,
       crawl_jobs.error_message,
       crawl_jobs.created_at
     FROM crawl_jobs

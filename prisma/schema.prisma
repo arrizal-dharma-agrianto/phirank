@@ -538,6 +538,7 @@ model CrawlJob {
   maxCrawlPages  Int       @default(100) @map("max_crawl_pages")
   startedAt      DateTime? @map("started_at")
   finishedAt     DateTime? @map("finished_at")
+  elapsedTimeMs  Int?      @map("elapsed_time_ms")
   errorMessage   String?   @map("error_message")
   rawRequest     Json?     @map("raw_request")
   rawResponse    Json?     @map("raw_response")
