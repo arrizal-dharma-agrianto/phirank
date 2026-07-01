@@ -40,6 +40,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
+import { useActiveTenant } from "@/modules/tenant/hooks";
 
 import {
   getCrawlerWebsite,
@@ -164,6 +165,7 @@ const DataAuditCrawlerDetail = ({
   showBackLink?: boolean;
 }) => {
   const queryClient = useQueryClient();
+  const { activeTenantId } = useActiveTenant();
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState("");
@@ -178,6 +180,7 @@ const DataAuditCrawlerDetail = ({
   const { data: website, isLoading, error } = useQuery({
     queryKey: [
       "data-audit-crawler-website",
+      activeTenantId,
       websiteId,
       page,
       pageSize,
@@ -197,6 +200,7 @@ const DataAuditCrawlerDetail = ({
         sortBy,
         sortOrder,
       }),
+    enabled: !!activeTenantId,
     refetchInterval: (query) => {
       const status = query.state.data?.crawlStatus;
       return status === "pending" || status === "running" ? 5000 : false;
@@ -206,10 +210,10 @@ const DataAuditCrawlerDetail = ({
     mutationFn: () => updateCrawlerWebsite(websiteId),
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ["data-audit-crawler-website", websiteId],
+        queryKey: ["data-audit-crawler-website", activeTenantId, websiteId],
       });
       queryClient.invalidateQueries({
-        queryKey: ["data-audit-crawler-websites"],
+        queryKey: ["data-audit-crawler-websites", activeTenantId],
       });
       toast.success("Crawl started");
     },
@@ -224,7 +228,7 @@ const DataAuditCrawlerDetail = ({
     mutationFn: () => refreshCrawlerWebsiteBacklinks(websiteId),
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ["data-audit-crawler-website", websiteId],
+        queryKey: ["data-audit-crawler-website", activeTenantId, websiteId],
       });
       toast.success("Backlink profile refreshed");
     },

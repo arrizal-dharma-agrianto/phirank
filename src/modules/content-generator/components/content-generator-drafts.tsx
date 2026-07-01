@@ -123,7 +123,7 @@ const ContentGeneratorDrafts = () => {
     onSuccess: (_data, draftId) => {
       toast.success("Draft deleted");
       queryClient.removeQueries({
-        queryKey: ["content-generator-draft", draftId],
+        queryKey: ["content-generator-draft", activeTenantId, draftId],
       });
       queryClient.invalidateQueries({
         queryKey: ["content-generator-drafts", activeTenantId],

@@ -169,7 +169,7 @@ const ContentGeneratorManual = () => {
         queryKey: ["content-generator-drafts", activeTenantId],
       });
       queryClient.invalidateQueries({
-        queryKey: ["content-generator-draft", result.id],
+        queryKey: ["content-generator-draft", activeTenantId, result.id],
       });
 
       const successMessage = getPublishSuccessMessage(delivery);
@@ -188,7 +188,7 @@ const ContentGeneratorManual = () => {
         queryKey: ["content-generator-drafts", activeTenantId],
       });
       queryClient.invalidateQueries({
-        queryKey: ["content-generator-draft", result.id],
+        queryKey: ["content-generator-draft", activeTenantId, result.id],
       });
     } finally {
       setIsPublishing(false);
