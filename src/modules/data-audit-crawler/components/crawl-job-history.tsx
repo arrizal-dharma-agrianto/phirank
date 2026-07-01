@@ -8,7 +8,7 @@ import {
 } from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import {
   AlertDialog,
@@ -67,10 +67,51 @@ const formatDate = (value: string | null) => {
   }).format(new Date(value));
 };
 
+const getElapsedTime = (job: CrawlJob, now: number) => {
+  if (typeof job.elapsedTimeMs === "number") return job.elapsedTimeMs;
+  if (!job.startedAt || !isActiveCrawl(job)) return null;
+
+  return Math.max(0, now - new Date(job.startedAt).getTime());
+};
+
+const formatDuration = (milliseconds: number | null) => {
+  if (milliseconds === null) return "-";
+
+  const totalSeconds = Math.max(0, Math.floor(milliseconds / 1000));
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  if (hours > 0) {
+    return `${hours}j ${minutes}m ${seconds}d`;
+  }
+
+  if (minutes > 0) {
+    return `${minutes}m ${seconds}d`;
+  }
+
+  return `${seconds}d`;
+};
+
+const formatElapsedTime = (job: CrawlJob, now: number) => {
+  const duration = formatDuration(getElapsedTime(job, now));
+
+  if (isActiveCrawl(job)) {
+    return `Sedang berjalan ${duration}`;
+  }
+
+  if (job.status === "completed") {
+    return `Selesai dalam ${duration}`;
+  }
+
+  return `Gagal setelah ${duration}`;
+};
+
 const CrawlJobHistory = () => {
   const { activeTenantId } = useActiveTenant();
   const queryClient = useQueryClient();
   const [deletingJob, setDeletingJob] = useState<CrawlJob | null>(null);
+  const [now, setNow] = useState(() => Date.now());
   const { data: jobs, isLoading, error } = useQuery({
     queryKey: ["data-audit-crawler-crawl-jobs", activeTenantId],
     queryFn: getCrawlerJobs,
@@ -93,6 +134,14 @@ const CrawlJobHistory = () => {
       setDeletingJob(null);
     },
   });
+
+  useEffect(() => {
+    if (!jobs?.some(isActiveCrawl)) return;
+
+    const interval = window.setInterval(() => setNow(Date.now()), 1000);
+
+    return () => window.clearInterval(interval);
+  }, [jobs]);
 
   const handleDelete = async () => {
     if (!deletingJob) return;
@@ -179,6 +228,9 @@ const CrawlJobHistory = () => {
                         Started {formatDate(job.startedAt)} · Finished{" "}
                         {formatDate(job.finishedAt)} · Max pages{" "}
                         {job.maxCrawlPages}
+                      </p>
+                      <p className="mt-1 text-xs text-gray-500">
+                        {formatElapsedTime(job, now)}
                       </p>
                       {job.errorMessage ? (
                         <p className="mt-1 text-xs text-red-600">

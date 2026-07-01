@@ -88,6 +88,10 @@ const markFailed = async (
     SET status = 'failed',
         error_message = ${errorMessage},
         finished_at = ${now},
+        elapsed_time_ms = GREATEST(
+          0,
+          FLOOR(EXTRACT(EPOCH FROM (${now}::timestamp - COALESCE(started_at, created_at))) * 1000)::integer
+        ),
         updated_at = ${now}
     WHERE id = ${crawlJobId}
   `;
@@ -231,6 +235,10 @@ const pollCrawlJob = async (crawlJobId: string) => {
         UPDATE crawl_jobs
         SET status = 'completed',
             finished_at = ${now},
+            elapsed_time_ms = GREATEST(
+              0,
+              FLOOR(EXTRACT(EPOCH FROM (${now}::timestamp - COALESCE(started_at, created_at))) * 1000)::integer
+            ),
             raw_response = ${summaryRaw},
             updated_at = ${now}
         WHERE id = ${crawlJobId}
@@ -279,6 +287,10 @@ const pollCrawlJob = async (crawlJobId: string) => {
       UPDATE crawl_jobs
       SET status = 'completed',
           finished_at = ${now},
+          elapsed_time_ms = GREATEST(
+            0,
+            FLOOR(EXTRACT(EPOCH FROM (${now}::timestamp - COALESCE(started_at, created_at))) * 1000)::integer
+          ),
           raw_response = ${summaryRaw},
           updated_at = ${now}
       WHERE id = ${crawlJobId}

@@ -6,11 +6,11 @@ import {
   ClipboardTextIcon,
   KeyIcon,
   LightningIcon,
-  WarningCircleIcon,
 } from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRef, useState } from "react";
+import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -59,8 +59,6 @@ type CopyTarget = "fileName" | "fileContent" | "keyLocation";
 const ContentGeneratorIndexNow = () => {
   const { activeTenantId } = useActiveTenant();
   const queryClient = useQueryClient();
-  const [message, setMessage] = useState<string | null>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [copiedTarget, setCopiedTarget] = useState<CopyTarget | null>(null);
   const copiedTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -71,10 +69,6 @@ const ContentGeneratorIndexNow = () => {
 
   const mutation = useMutation({
     mutationFn: updateContentGeneratorIndexNow,
-    onMutate: () => {
-      setMessage(null);
-      setErrorMessage(null);
-    },
     onSuccess: (data, action) => {
       queryClient.setQueryData(
         ["content-generator-indexnow", activeTenantId],
@@ -82,26 +76,32 @@ const ContentGeneratorIndexNow = () => {
       );
 
       if (action === "enable") {
-        setMessage("IndexNow key generated. Install the key file to continue.");
+        toast.success("IndexNow key generated", {
+          description: "Install the key file to continue.",
+        });
         return;
       }
 
       if (data.indexNow.status === "ready") {
-        setMessage("IndexNow key file verified. The workspace is ready.");
+        toast.success("IndexNow key file verified", {
+          description: "The workspace is ready.",
+        });
         return;
       }
 
-      setErrorMessage(
-        data.indexNow.lastError ??
-          "Key file is not verified yet. Check the setup instructions.",
-      );
+      toast.error("IndexNow key is not verified yet", {
+        description:
+          data.indexNow.lastError ??
+          "Check the setup instructions and try again.",
+      });
     },
     onError: (error) => {
-      setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : "Failed to update IndexNow settings.",
-      );
+      toast.error("Failed to update IndexNow settings", {
+        description:
+          error instanceof Error
+            ? error.message
+            : "Please check the setup and try again.",
+      });
     },
   });
 
@@ -117,6 +117,7 @@ const ContentGeneratorIndexNow = () => {
     if (!value) return;
 
     await navigator.clipboard.writeText(value);
+    toast.success("Copied to clipboard");
     setCopiedTarget(target);
 
     if (copiedTimeoutRef.current) {
@@ -198,23 +199,6 @@ const ContentGeneratorIndexNow = () => {
                 </p>
               </div>
             )}
-
-            {message ? (
-              <div className="flex items-start gap-2 rounded-lg border border-emerald-100 bg-emerald-50 p-3 text-sm text-emerald-700">
-                <CheckCircleIcon aria-hidden="true" className="mt-0.5 size-4" />
-                <span>{message}</span>
-              </div>
-            ) : null}
-
-            {errorMessage ? (
-              <div className="flex items-start gap-2 rounded-lg border border-red-100 bg-red-50 p-3 text-sm text-red-700">
-                <WarningCircleIcon
-                  aria-hidden="true"
-                  className="mt-0.5 size-4"
-                />
-                <span>{errorMessage}</span>
-              </div>
-            ) : null}
 
             {isEnabled ? (
               <div className="grid gap-3">

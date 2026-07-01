@@ -54,6 +54,8 @@ import type { ContentGeneratorDraftStatus } from "../types";
 import type { ContentGeneratorInput } from "../schemas";
 import { ContentGeneratorStructuredContent } from "./content-generator-structured-content";
 
+type PublishDelivery = Awaited<ReturnType<typeof publishGeneratedContent>>;
+
 const statusLabels: Record<ContentGeneratorDraftStatus, string> = {
   draft: "Draft",
   published: "Published",
@@ -72,6 +74,18 @@ const statusIcons = {
   failed_to_publish: WarningCircleIcon,
 } satisfies Record<ContentGeneratorDraftStatus, typeof ClockIcon>;
 
+const getPublishSuccessMessage = (delivery: PublishDelivery) =>
+  [
+    `Published to webhook. Delivery ${delivery.deliveryId} returned HTTP ${delivery.status}.`,
+    delivery.indexNow
+      ? delivery.indexNow.status === "submitted"
+        ? `IndexNow submitted ${delivery.indexNow.submittedUrl}.`
+        : `IndexNow ${delivery.indexNow.status}: ${delivery.indexNow.message}`
+      : null,
+  ]
+    .filter(Boolean)
+    .join(" ");
+
 const formatDate = (value: string | null) => {
   if (!value) return "-";
 
@@ -87,12 +101,6 @@ const formatDate = (value: string | null) => {
 const ContentGeneratorDraftDetail = ({ draftId }: { draftId: string }) => {
   const queryClient = useQueryClient();
   const router = useRouter();
-  const [publishErrorMessage, setPublishErrorMessage] = useState<string | null>(
-    null,
-  );
-  const [publishSuccessMessage, setPublishSuccessMessage] = useState<
-    string | null
-  >(null);
   const [selectedIntegrationId, setSelectedIntegrationId] = useState("");
   const [submitToIndexNow, setSubmitToIndexNow] = useState(true);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -123,10 +131,6 @@ const ContentGeneratorDraftDetail = ({ draftId }: { draftId: string }) => {
         submitToIndexNow,
       });
     },
-    onMutate: () => {
-      setPublishErrorMessage(null);
-      setPublishSuccessMessage(null);
-    },
     onSuccess: (delivery) => {
       queryClient.invalidateQueries({
         queryKey: ["content-generator-draft", draftId],
@@ -134,18 +138,11 @@ const ContentGeneratorDraftDetail = ({ draftId }: { draftId: string }) => {
       queryClient.invalidateQueries({
         queryKey: ["content-generator-drafts"],
       });
-      setPublishSuccessMessage(
-        [
-          `Published to webhook. Delivery ${delivery.deliveryId} returned HTTP ${delivery.status}.`,
-          delivery.indexNow
-            ? delivery.indexNow.status === "submitted"
-              ? `IndexNow submitted ${delivery.indexNow.submittedUrl}.`
-              : `IndexNow ${delivery.indexNow.status}: ${delivery.indexNow.message}`
-            : null,
-        ]
-          .filter(Boolean)
-          .join(" "),
-      );
+      const successMessage = getPublishSuccessMessage(delivery);
+
+      toast.success("Published to webhook", {
+        description: successMessage,
+      });
     },
     onError: (error) => {
       queryClient.invalidateQueries({
@@ -154,9 +151,12 @@ const ContentGeneratorDraftDetail = ({ draftId }: { draftId: string }) => {
       queryClient.invalidateQueries({
         queryKey: ["content-generator-drafts"],
       });
-      setPublishErrorMessage(
-        error instanceof Error ? error.message : "Failed to publish content.",
-      );
+      toast.error("Failed to publish content", {
+        description:
+          error instanceof Error
+            ? error.message
+            : "Please check the webhook and try again.",
+      });
     },
   });
   const deleteDraftMutation = useMutation({
@@ -311,16 +311,6 @@ const ContentGeneratorDraftDetail = ({ draftId }: { draftId: string }) => {
                 {draft.publishError ? (
                   <div className="rounded-lg border border-red-100 bg-red-50 p-3 text-xs leading-5 text-red-700">
                     {draft.publishError}
-                  </div>
-                ) : null}
-                {publishErrorMessage ? (
-                  <div className="rounded-lg border border-red-100 bg-red-50 p-3 text-xs leading-5 text-red-700">
-                    {publishErrorMessage}
-                  </div>
-                ) : null}
-                {publishSuccessMessage ? (
-                  <div className="rounded-lg border border-emerald-100 bg-emerald-50 p-3 text-xs leading-5 text-emerald-700">
-                    {publishSuccessMessage}
                   </div>
                 ) : null}
                 {canPublish ? (

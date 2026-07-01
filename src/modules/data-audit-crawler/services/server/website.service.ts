@@ -39,6 +39,7 @@ type CrawlJobRow = {
   max_crawl_pages: number;
   started_at: Date | null;
   finished_at: Date | null;
+  elapsed_time_ms: number | null;
   error_message: string | null;
   created_at: Date;
 };
@@ -114,6 +115,12 @@ type InternalLinkCandidateRow = {
   url: string;
   title: string | null;
   h1: string | null;
+};
+
+type SitemapPageRow = {
+  url: string;
+  canonical_url: string | null;
+  updated_at: Date;
 };
 
 const DEFAULT_CRAWL_PAGE_SIZE = 10;
@@ -237,6 +244,7 @@ const serializeJob = (job: CrawlJobRow) => ({
   maxCrawlPages: job.max_crawl_pages,
   startedAt: job.started_at?.toISOString() ?? null,
   finishedAt: job.finished_at?.toISOString() ?? null,
+  elapsedTimeMs: job.elapsed_time_ms,
   errorMessage: job.error_message,
   createdAt: job.created_at.toISOString(),
 });
@@ -941,6 +949,7 @@ const getWebsiteDetail = async (
         max_crawl_pages,
         started_at,
         finished_at,
+        elapsed_time_ms,
         error_message,
         created_at
       FROM crawl_jobs
@@ -1126,6 +1135,51 @@ const listCurrentCrawlPageInternalLinks = async (
   });
 };
 
+const listCurrentCrawlSitemapUrls = async (
+  tenantId: string,
+  limit = 1000,
+) => {
+  const pages = await prisma.$queryRaw<SitemapPageRow[]>`
+    SELECT
+      crawl_pages.url,
+      crawl_pages.canonical_url,
+      crawl_pages.updated_at
+    FROM crawl_pages
+    INNER JOIN websites ON websites.id = crawl_pages.website_id
+    WHERE websites.tenant_id = ${tenantId}
+      AND crawl_pages.crawl_job_id = websites.current_crawl_job_id
+      AND crawl_pages.url IS NOT NULL
+      AND (
+        crawl_pages.status_code IS NULL
+        OR crawl_pages.status_code < 400
+      )
+      AND (
+        crawl_pages.is_indexable IS NULL
+        OR crawl_pages.is_indexable = true
+      )
+    ORDER BY
+      CASE WHEN crawl_pages.url = websites.start_url THEN 0 ELSE 1 END,
+      crawl_pages.updated_at DESC,
+      crawl_pages.url ASC
+    LIMIT ${Math.max(1, Math.min(1000, limit))}
+  `;
+
+  const seenUrls = new Set<string>();
+
+  return pages
+    .map((page) => ({
+      url: page.canonical_url || page.url,
+      sourceUrl: page.url,
+      lastModified: page.updated_at.toISOString(),
+    }))
+    .filter((page) => {
+      if (seenUrls.has(page.url)) return false;
+
+      seenUrls.add(page.url);
+      return true;
+    });
+};
+
 const listCrawlJobs = async (tenantId: string) => {
   const jobs = await prisma.$queryRaw<CrawlJobRow[]>`
     SELECT
@@ -1138,6 +1192,7 @@ const listCrawlJobs = async (tenantId: string) => {
       crawl_jobs.max_crawl_pages,
       crawl_jobs.started_at,
       crawl_jobs.finished_at,
+      crawl_jobs.elapsed_time_ms,
       crawl_jobs.error_message,
       crawl_jobs.created_at
     FROM crawl_jobs
@@ -1187,6 +1242,7 @@ export {
   getCrawlPageDetail,
   getWebsiteDetail,
   listCurrentCrawlPageInternalLinks,
+  listCurrentCrawlSitemapUrls,
   listCrawlJobs,
   listWebsites,
   refreshBacklinkProfile,
