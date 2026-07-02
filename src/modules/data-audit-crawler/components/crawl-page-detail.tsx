@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { useActiveTenant } from "@/modules/tenant/hooks";
 
 import { getCrawlerPage } from "../services";
 import type {
@@ -404,9 +405,11 @@ const CrawlPageDetail = ({
   websiteId: string;
   pageId: string;
 }) => {
+  const { activeTenantId } = useActiveTenant();
   const { data: page, isLoading, error } = useQuery({
-    queryKey: ["data-audit-crawler-page", websiteId, pageId],
+    queryKey: ["data-audit-crawler-page", activeTenantId, websiteId, pageId],
     queryFn: () => getCrawlerPage(websiteId, pageId),
+    enabled: !!activeTenantId,
   });
 
   if (isLoading) {

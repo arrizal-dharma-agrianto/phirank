@@ -43,6 +43,7 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { useActiveTenant } from "@/modules/tenant/hooks";
 
 import {
   deleteContentGeneratorDraft,
@@ -101,16 +102,19 @@ const formatDate = (value: string | null) => {
 const ContentGeneratorDraftDetail = ({ draftId }: { draftId: string }) => {
   const queryClient = useQueryClient();
   const router = useRouter();
+  const { activeTenantId } = useActiveTenant();
   const [selectedIntegrationId, setSelectedIntegrationId] = useState("");
   const [submitToIndexNow, setSubmitToIndexNow] = useState(true);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const { data: draft, error, isLoading } = useQuery({
-    queryKey: ["content-generator-draft", draftId],
+    queryKey: ["content-generator-draft", activeTenantId, draftId],
     queryFn: () => getContentGeneratorDraft(draftId),
+    enabled: !!activeTenantId,
   });
   const { data: integrations, isLoading: isLoadingIntegrations } = useQuery({
-    queryKey: ["content-generator-integrations"],
+    queryKey: ["content-generator-integrations", activeTenantId],
     queryFn: getContentGeneratorIntegrations,
+    enabled: !!activeTenantId,
   });
   const publishMutation = useMutation({
     mutationFn: async () => {
@@ -133,10 +137,10 @@ const ContentGeneratorDraftDetail = ({ draftId }: { draftId: string }) => {
     },
     onSuccess: (delivery) => {
       queryClient.invalidateQueries({
-        queryKey: ["content-generator-draft", draftId],
+        queryKey: ["content-generator-draft", activeTenantId, draftId],
       });
       queryClient.invalidateQueries({
-        queryKey: ["content-generator-drafts"],
+        queryKey: ["content-generator-drafts", activeTenantId],
       });
       const successMessage = getPublishSuccessMessage(delivery);
 
@@ -146,10 +150,10 @@ const ContentGeneratorDraftDetail = ({ draftId }: { draftId: string }) => {
     },
     onError: (error) => {
       queryClient.invalidateQueries({
-        queryKey: ["content-generator-draft", draftId],
+        queryKey: ["content-generator-draft", activeTenantId, draftId],
       });
       queryClient.invalidateQueries({
-        queryKey: ["content-generator-drafts"],
+        queryKey: ["content-generator-drafts", activeTenantId],
       });
       toast.error("Failed to publish content", {
         description:
@@ -164,10 +168,10 @@ const ContentGeneratorDraftDetail = ({ draftId }: { draftId: string }) => {
     onSuccess: () => {
       toast.success("Draft deleted");
       queryClient.removeQueries({
-        queryKey: ["content-generator-draft", draftId],
+        queryKey: ["content-generator-draft", activeTenantId, draftId],
       });
       queryClient.invalidateQueries({
-        queryKey: ["content-generator-drafts"],
+        queryKey: ["content-generator-drafts", activeTenantId],
       });
       router.push("/dashboard/content-generator/draft");
     },

@@ -51,6 +51,7 @@ const useActiveTenant = () => {
       ["content-generator-indexnow"],
       ["data-audit-crawler-websites"],
       ["data-audit-crawler-website"],
+      ["data-audit-crawler-page"],
       ["data-audit-crawler-crawl-jobs"],
     ] as const;
 
