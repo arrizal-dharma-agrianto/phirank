@@ -47,6 +47,7 @@ const SetupProgressCard = () => {
   const { data: indexNow } = useQuery({
     queryKey: ["content-generator-indexnow", activeTenantId],
     queryFn: getContentGeneratorIndexNow,
+    enabled: !!activeTenantId,
   });
   const website = websites?.[0] ?? null;
   const hasCompletedCrawl = Boolean(

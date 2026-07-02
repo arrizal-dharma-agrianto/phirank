@@ -121,13 +121,18 @@ export const getAuthorizationContext = async (
 ): Promise<AuthorizationContext | null> => {
   const cookieStore = await cookies();
   const headersList = await headers();
-  const activeTenantId =
-    headersList.get(ACTIVE_TENANT_HEADER) ??
-    cookieStore.get(ACTIVE_TENANT_COOKIE)?.value ??
-    cookieStore.get(LEGACY_ACTIVE_TENANT_COOKIE)?.value;
+  const activeTenantIds = [
+    headersList.get(ACTIVE_TENANT_HEADER),
+    cookieStore.get(ACTIVE_TENANT_COOKIE)?.value,
+    cookieStore.get(LEGACY_ACTIVE_TENANT_COOKIE)?.value,
+  ].filter((tenantId): tenantId is string => Boolean(tenantId));
 
-  if (activeTenantId) {
-    return selectAuthorizationContext(userId, activeTenantId);
+  for (const tenantId of activeTenantIds) {
+    const authorization = await selectAuthorizationContext(userId, tenantId);
+
+    if (authorization) {
+      return authorization;
+    }
   }
 
   return selectAuthorizationContext(userId);

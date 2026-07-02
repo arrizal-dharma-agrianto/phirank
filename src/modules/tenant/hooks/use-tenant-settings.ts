@@ -9,6 +9,7 @@ const useTenantSettings = () => {
   return useQuery({
     queryKey: ["tenant-settings", activeTenantId],
     queryFn: getTenantSettings,
+    enabled: !!activeTenantId,
   });
 };
 
